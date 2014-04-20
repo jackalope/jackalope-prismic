@@ -53,8 +53,6 @@ $cli->addCommands(array(
     new \PHPCR\Util\Console\Command\WorkspaceListCommand(),
     new \PHPCR\Util\Console\Command\WorkspacePurgeCommand(),
     new \PHPCR\Util\Console\Command\WorkspaceQueryCommand(),
-
-    new \Jackalope\Tools\Console\Command\InitDoctrineDbalCommand(),
 ));
 $cli->run();
 

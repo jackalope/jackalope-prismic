@@ -1,26 +1,22 @@
 <?php
 
-namespace Jackalope\Transport\DoctrineDBAL\Query;
+namespace Jackalope\Transport\Prismic\Query;
 
 use Jackalope\NotImplementedException;
 use Jackalope\Query\QOM\PropertyValue;
 use Jackalope\Query\QOM\QueryObjectModel;
-use Jackalope\Transport\DoctrineDBAL\RepositorySchema;
-use Jackalope\Transport\DoctrineDBAL\Util\Xpath;
 
 use PHPCR\NamespaceException;
 use PHPCR\NodeType\NodeTypeManagerInterface;
 use PHPCR\Query\InvalidQueryException;
 use PHPCR\Query\QOM;
 
-use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Platforms\AbstractPlatform;
-use Doctrine\DBAL\Platforms\MySqlPlatform;
-use Doctrine\DBAL\Platforms\PostgreSqlPlatform;
-use Doctrine\DBAL\Platforms\SqlitePlatform;
+use Prismic\Api;
 
 /**
- * Converts QOM to SQL Statements for the Doctrine DBAL database backend.
+ * Converts QOM to Prismic Query Statements for the http://prismic.io service.
+ *
+ * TODO implement
  *
  * @license http://www.apache.org/licenses Apache License Version 2.0, January 2004
  * @license http://opensource.org/licenses/MIT MIT License
@@ -43,14 +39,9 @@ class QOMWalker
     private $source;
 
     /**
-     * @var \Doctrine\DBAL\Connection
+     * @var Api
      */
-    private $conn;
-
-    /**
-     * @var AbstractPlatform
-     */
-    private $platform;
+    private $api;
 
     /**
      * @var array
@@ -58,22 +49,15 @@ class QOMWalker
     private $namespaces;
 
     /**
-     * @var \Doctrine\DBAL\Schema\Schema
-     */
-    private $schema;
-
-    /**
      * @param NodeTypeManagerInterface $manager
-     * @param Connection               $conn
+     * @param Api                      $api
      * @param array                    $namespaces
      */
-    public function __construct(NodeTypeManagerInterface $manager, Connection $conn, array $namespaces = array())
+    public function __construct(NodeTypeManagerInterface $manager, Api $api, array $namespaces = array())
     {
-        $this->conn = $conn;
+        $this->api = $api;
         $this->nodeTypeManager = $manager;
-        $this->platform = $conn->getDatabasePlatform();
         $this->namespaces = $namespaces;
-        $this->schema = new RepositorySchema(array(), $this->conn);
     }
 
     /**
