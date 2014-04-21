@@ -10,7 +10,7 @@ use PHPCR\RepositoryFactoryInterface;
  * Use repository factory based on parameters (the parameters below are examples):
  *
  * <pre>
- *    $parameters = array('jackalope.Prismic_uri' => 'http://localhost:8080/server/');
+ *    $parameters = array('jackalope.prismic_uri' => 'https://%s.prismic.io/api');
  *    $factory = new \Jackalope\RepositoryFactoryPrismic;
  *    $repo = $factory->getRepository($parameters);
  * </pre>
