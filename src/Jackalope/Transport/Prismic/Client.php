@@ -433,22 +433,28 @@ class Client extends BaseTransport implements QueryTransport
         $node->tags = (array) $doc->getTags();
         $node->{':tags'} = PropertyType::STRING;
         foreach ($doc->getFragments() as $name => $fragment) {
-            // TODO should structured text be modeled as children?
-            $node->{$name} = $fragment->asText();
+            // TODO model StructuredText/ImageView/Embed/Group etc. as children
             switch (get_class($fragment)) {
                 case 'Prismic\Fragment\Date':
-                    $type = PropertyType::DATE;
+                    $node->{$name} = $fragment->asText();
+                    $node->{":$name"} = PropertyType::DATE;
                     break;
                 case 'Prismic\Fragment\Number':
-                    $type = PropertyType::LONG;
+                    $node->{$name} = $fragment->asText();
+                    $node->{":$name"} = PropertyType::LONG;
                     break;
                 case 'Prismic\Fragment\Image':
-                    $type = PropertyType::BINARY;
+                    $node->{$name} = $fragment->asText();
+                    $node->{":$name"} = PropertyType::BINARY;
+                    break;
+                case 'Prismic\Fragment\ImageView':
+                    $node->{":$name"} = PropertyType::URI;
+                    $node->{$name} = $fragment->getUrl();
                     break;
                 default:
-                    $type = PropertyType::STRING;
+                    $node->{$name} = $fragment->asText();
+                    $node->{":$name"} = PropertyType::STRING;
             }
-            $node->{":$name"} = $type;
         }
 
         return $node;
