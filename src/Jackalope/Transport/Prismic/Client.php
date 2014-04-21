@@ -267,6 +267,8 @@ class Client extends BaseTransport implements QueryTransport
      */
     public function getRepositoryDescriptors()
     {
+        // TODO adjust
+
         return array(
             RepositoryInterface::IDENTIFIER_STABILITY => RepositoryInterface::IDENTIFIER_STABILITY_INDEFINITE_DURATION,
             RepositoryInterface::REP_NAME_DESC  => 'jackalope_prismic',
@@ -403,26 +405,6 @@ class Client extends BaseTransport implements QueryTransport
     }
 
     /**
-     * @param $id
-     *
-     * @return Document|null
-     */
-    private function getDocument($id)
-    {
-        $docs = $this->api->forms()->everything->ref($this->ref)->query(
-                '[[:d = at(document.id, "'.$id.'")]]'
-            )
-            ->submit()
-        ;
-
-        if (is_array($docs) && count($docs) > 0) {
-            return $docs[0];
-        }
-
-        return null;
-    }
-
-    /**
      * @param Document $doc
      * @return \stdClass
      */
@@ -450,12 +432,17 @@ class Client extends BaseTransport implements QueryTransport
     {
         $this->assertLoggedIn();
 
-        $doc = $this->getDocument($uuid);
-        if (empty($doc)) {
+        $docs = $this->api->forms()->everything->ref($this->ref)->query(
+                '[[:d = at(document.id, "'.$uuid.'")]]'
+            )
+            ->submit()
+        ;
+
+        if (!is_array($docs) || empty($docs[0])) {
             throw new ItemNotFoundException("Item $uuid not found in workspace ".$this->workspaceName);
         }
 
-        return $this->getNodeData($doc);
+        return $this->getNodeData($docs[0]);
     }
 
     /**
@@ -510,7 +497,6 @@ class Client extends BaseTransport implements QueryTransport
 
         $this->assertLoggedIn();
 
-        // TODO implement
         $path = '/'.$uuid;
         if (!$path) {
             throw new ItemNotFoundException("no item found with uuid ".$uuid);
