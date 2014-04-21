@@ -1,8 +1,8 @@
 {
-    "name": "jackalope/jackalope-doctrine-dbal",
+    "name": "jackalope/jackalope-prismic",
     "type": "library",
-    "description": "Jackalope Transport library for Doctrine DBAL",
-    "keywords": ["transport implementation", "doctrine-dbal", "phpcr"],
+    "description": "Jackalope Transport library for http://prismic.io DBAL",
+    "keywords": ["transport implementation", "prismic", "phpcr"],
     "homepage": "http://jackalope.github.io",
     "license": [
         "MIT",
@@ -17,7 +17,7 @@
     ],
     "require": {
         "php": ">=5.3.3",
-        "doctrine/dbal": ">=2.2.0,<2.5",
+        "prismic/php-sdk": "dev-master",
         "phpcr/phpcr": "~2.1.0",
         "phpcr/phpcr-utils": "~1.1.0",
         "jackalope/jackalope": "~1.1.1"
@@ -27,8 +27,7 @@
     },
     "require-dev": {
         "psr/log": "~1.0",
-        "phpcr/phpcr-api-tests": "2.1.0",
-        "phpunit/dbunit": "~1.3"
+        "phpcr/phpcr-api-tests": "2.1.0"
     },
     "autoload": {
         "psr-0": { "Jackalope\\": "src/" }

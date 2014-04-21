@@ -12,7 +12,7 @@ against the specification. This is what you want to look at when using
 jackalope as a PHPCR implementation.
 
 Unit tests for the jackalope doctrine-dbal backend implememtation are in
-tests/Jackalope/Transport/DoctrineDBAL. There are also some unit tests for
+tests/Jackalope/Transport/Prismic. There are also some unit tests for
 base jackalope in vendor/jackalope/jackalope/tests.
 
 
@@ -23,7 +23,7 @@ jackalope core, phpcr-utils as well as the phpcr-api-tests. You can limit the te
 to run by specifying the path to those tests to phpunit.
 
 Note that the phpcr-api-tests are skipped for features not implemented in
-jackalope. Have a look at the tests/inc/DoctrineDBALImplementationLoader.php
+jackalope. Have a look at the tests/inc/PrismicImplementationLoader.php
 file to see which features are currently skipped.
 
 You should only see success or skipped tests, no failures or errors.
