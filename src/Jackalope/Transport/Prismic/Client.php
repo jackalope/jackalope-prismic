@@ -15,7 +15,6 @@ use PHPCR\SimpleCredentials;
 use PHPCR\Query\InvalidQueryException;
 
 use PHPCR\Util\QOM\Sql2ToQomQueryConverter;
-use PHPCR\Util\ValueConverter;
 use PHPCR\Util\PathHelper;
 
 use Jackalope\Query\Query;
@@ -48,11 +47,6 @@ class Client extends BaseTransport implements QueryTransport
      * @var FactoryInterface
      */
     protected $factory;
-
-    /**
-     * @var ValueConverter
-     */
-    protected $valueConverter;
 
     /**
      * @var bool
@@ -113,13 +107,23 @@ class Client extends BaseTransport implements QueryTransport
     private $defaultWorkspaceName = 'default';
 
     /**
+     * @var array
+     */
+    private $bookmarksByName = array();
+
+    /**
+     * @var array
+     */
+    private $bookmarksByUuid = array();
+
+
+    /**
      * @param FactoryInterface $factory
      * @param string           $uri     Uri to the endpoint with a %s placeholder for the workspace name
      */
     public function __construct(FactoryInterface $factory, $uri)
     {
         $this->factory = $factory;
-        $this->valueConverter = $this->factory->get('PHPCR\Util\ValueConverter');
         $this->uri = $uri;
     }
 
@@ -198,7 +202,7 @@ class Client extends BaseTransport implements QueryTransport
 
         $apiEndpoint = $this->getApiEndpointUri($this->workspaceName);
         $accessToken = $this->accessToken;
-        if (null !== $credentials->getUserID()) {
+        if ($credentials instanceof SimpleCredentials && null !== $credentials->getUserID()) {
             // TODO oauth login
             $clientId = $credentials->getUserID();
             $clientSecret = $credentials->getPassword();
@@ -215,6 +219,8 @@ class Client extends BaseTransport implements QueryTransport
         }
 
         $this->ref = $this->api->master()->getRef();
+        $this->bookmarksByName = (array) $this->api->bookmarks();
+        $this->bookmarksByUuid = array_flip($this->bookmarksByName);
 
         $this->loggedIn = true;
 
@@ -333,6 +339,7 @@ class Client extends BaseTransport implements QueryTransport
                 NamespaceRegistryInterface::PREFIX_MIX => NamespaceRegistryInterface::NAMESPACE_MIX,
                 NamespaceRegistryInterface::PREFIX_XML => NamespaceRegistryInterface::NAMESPACE_XML,
                 NamespaceRegistryInterface::PREFIX_SV => NamespaceRegistryInterface::NAMESPACE_SV,
+                'prismic' => 'prismic',
             );
         }
 
@@ -359,7 +366,8 @@ class Client extends BaseTransport implements QueryTransport
         $root->{'jcr:primaryType'} = 'nt:unstructured';
         $root->{':jcr:primaryType'} = PropertyType::NAME;
         foreach ($children as $child) {
-            $root->{$child->getId()} = new \stdClass();
+            $childPath = $this->getNodePathForIdentifier($child->getId());
+            $root->{substr($childPath, 1)} = new \stdClass();
         }
 
         return $root;
@@ -411,16 +419,37 @@ class Client extends BaseTransport implements QueryTransport
     private function getNodeData(Document $doc)
     {
         $node = new \stdClass();
-        $node->{'jcr:primaryType'} = 'nt:unstructured';
+        $node->{'jcr:primaryType'} = 'prismic:'.$doc->getType();
         $node->{':jcr:primaryType'} = PropertyType::STRING;
         $node->{'jcr:mixinTypes'} = array ('mix:referenceable');
         $node->{':jcr:mixinTypes'} = PropertyType::STRING;
         $node->{'jcr:uuid'} = $doc->getId();
         $node->{':jcr:uuid'} = PropertyType::NAME;
 
-        // TODO read more data, should structured text be modeled as children?
         $node->slug = $doc->getSlug();
         $node->{':slug'} = PropertyType::STRING;
+        $node->slugs = (array) $doc->getSlugs();
+        $node->{':slugs'} = PropertyType::STRING;
+        $node->tags = (array) $doc->getTags();
+        $node->{':tags'} = PropertyType::STRING;
+        foreach ($doc->getFragments() as $name => $fragment) {
+            // TODO should structured text be modeled as children?
+            $node->{$name} = $fragment->asText();
+            switch (get_class($fragment)) {
+                case 'Prismic\Fragment\Date':
+                    $type = PropertyType::DATE;
+                    break;
+                case 'Prismic\Fragment\Number':
+                    $type = PropertyType::LONG;
+                    break;
+                case 'Prismic\Fragment\Image':
+                    $type = PropertyType::BINARY;
+                    break;
+                default:
+                    $type = PropertyType::STRING;
+            }
+            $node->{":$name"} = $type;
+        }
 
         return $node;
     }
@@ -463,7 +492,7 @@ class Client extends BaseTransport implements QueryTransport
 
         $nodes = array();
         foreach ($docs as $doc) {
-            $nodes['/'.$doc->getId()] = $this->getNodeData($doc);
+            $nodes[$this->getNodePathForIdentifier($doc->getId())] = $this->getNodeData($doc);
         }
 
         return $nodes;
@@ -483,7 +512,8 @@ class Client extends BaseTransport implements QueryTransport
 
         $this->assertLoggedIn();
 
-        return substr($path, 1);
+        $relPath = substr($path, 1);
+        return isset($this->bookmarksByName->{$relPath}) ? $this->bookmarksByName->{$relPath}->getId() : $relPath;
     }
 
     /**
@@ -497,7 +527,8 @@ class Client extends BaseTransport implements QueryTransport
 
         $this->assertLoggedIn();
 
-        $path = '/'.$uuid;
+        // TODO do we need to verify the existence?
+        $path = isset($this->bookmarksByUuid[$uuid]) ? $this->bookmarksByUuid[$uuid] : '/'.$uuid;
         if (!$path) {
             throw new ItemNotFoundException("no item found with uuid ".$uuid);
         }
@@ -531,9 +562,36 @@ class Client extends BaseTransport implements QueryTransport
      */
     protected function fetchUserNodeTypes()
     {
+        $types = $this->api->getData()->getTypes();
         $result = array();
-
-        // TODO implement fetch types
+        foreach ($types as $type) {
+            $result["prismic:$type"] = array(
+                'name' => "prismic:$type",
+                'isAbstract' => false,
+                'isMixin' => false,
+                'isQueryable' => true,
+                'hasOrderableChildNodes' => true,
+                'primaryItemName' => null,
+                'declaredSuperTypeNames' => array(
+                    0 => 'nt:unstructured',
+                ),
+                'declaredPropertyDefinitions' => array(),
+                'declaredNodeDefinitions' => array(
+                    array(
+                        'declaringNodeType' => "prismic:$type",
+                        'name' => 'jcr:system',
+                        'isAutoCreated' => false,
+                        'isMandatory' => false,
+                        'isProtected' => false,
+                        'onParentVersion' => 5,
+                        'allowsSameNameSiblings' => false,
+                        'defaultPrimaryTypeName' => "prismic:$type",
+                        'requiredPrimaryTypeNames' =>
+                            array("prismic:$type"),
+                    ),
+                ),
+            );
+        }
 
         return $result;
     }
