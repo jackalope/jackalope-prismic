@@ -1,9 +1,13 @@
+# Abandoned
+
+This package is not maintained. Please use the maintained PHPCR implementations [jackalope-doctrine-dbal](https://github.com/jackalope/jackalope-doctrine-dbal) or [jackalope-jackrabbit](https://github.com/jackalope/jackalope-jackrabbit).
+
 # Jackalope [![Build Status](https://secure.travis-ci.org/jackalope/jackalope-prismic.png?branch=master)](http://travis-ci.org/jackalope/jackalope-prismic)
 
 Implementation of the PHP Content Repository API ([PHPCR](http://phpcr.github.io))
 using a relational database to persist data.
 
-Jackalope uses the http://prismic.io service for storage.
+Jackalope-prismic uses the http://prismic.io service for storage.
 
 For the moment, it is less feature complete, performant and robust than
 [Jackalope-Jackrabbit](http://github.com/jackalope/jackalope-jackrabbit).
